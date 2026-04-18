@@ -49,6 +49,16 @@ export function renderDashboard() {
         <div class="panel-btn-row" style="margin-top:0.5rem;">
           <button class="panel-btn" id="mp-normalize" style="background:#10b981; width:100%;">🟢 Normalize (Cancel All Effects)</button>
         </div>
+        <div class="panel-btn-row" style="margin-top:1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top:1rem;">
+          <button class="panel-btn" id="mp-nuke-global" style="background:var(--color-error); width:100%; border:2px solid #fff; font-weight:bold; color:black; text-shadow:none;">☢️ LAUNCH NUKE</button>
+        </div>
+      </div>
+      
+      <div class="panel-card">
+        <h4>👁️ Omni-Sight (Spy Groups)</h4>
+        <button class="panel-btn primary" id="mp-load-groups" style="width:100%; margin-bottom: 1rem;">Load Active Factions</button>
+        <div id="mp-groups-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 1rem;"></div>
+        <div id="mp-spy-chat" class="panel-log" style="height: 200px; display:none; flex-direction:column; background: #000; border: 1px solid #333;"></div>
       </div>
 
       <div class="panel-card">
@@ -129,6 +139,59 @@ function _bindEvents() {
     dbPush('adminCommands', { type: 'normalize', senderId: user.id, timestamp: getNow() });
     await _logActivity('🟢 Normalized all client effects globally');
   });
+
+  document.getElementById('mp-nuke-global').addEventListener('click', async () => {
+    if (!_v()) return;
+    if (!confirm("Launch nuclear strike against all clients?")) return;
+    const user = getCurrentUser();
+    dbPush('adminCommands', { type: 'force_effect', tier: 'nuke', senderId: user.id, timestamp: getNow() });
+    await _logActivity('☢️ NUKE launched globally by admin');
+  });
+
+  // Omni-sight logic
+  let _spyListener = null;
+  document.getElementById('mp-load-groups').addEventListener('click', async () => {
+     if (!_v()) return;
+     const list = document.getElementById('mp-groups-list');
+     const chatBox = document.getElementById('mp-spy-chat');
+     list.innerHTML = 'Loading...';
+     
+     import('./social.js').then(async ({ getAllGroups }) => {
+       const groups = await getAllGroups();
+       if (!groups || Object.keys(groups).length === 0) {
+         list.innerHTML = 'No active groups.';
+         return;
+       }
+       
+       list.innerHTML = Object.entries(groups).map(([gid, g]) => {
+          return `<div class="panel-btn" style="background:#222; text-align:left; margin-bottom:4px; font-size:0.8rem; padding:6px; cursor:pointer;" onclick="window.spyGroup('${gid}', '${g.name ? g.name.replace(/'/g, "\\\\'") : gid}')">👁️ ${g.name || gid} (${Object.keys(g.members||{}).length} users)</div>`;
+       }).join('');
+     });
+  });
+  
+  window.spyGroup = (groupId, groupName) => {
+     if (_spyListener) dbOff(_spyListener);
+     const chatBox = document.getElementById('mp-spy-chat');
+     chatBox.style.display = 'flex';
+     chatBox.innerHTML = `<div style="padding:4px; background:#111; border-bottom:1px solid #333; font-weight:bold; color:var(--color-primary); flex-shrink:0;">Wiretapping: ${groupName}</div><div id="mp-spy-msgs" style="flex:1; overflow-y:auto; padding:4px;"></div>`;
+     
+     const msgsEl = document.getElementById('mp-spy-msgs');
+     import('./firebase.js').then(({ dbListenChildAdded }) => {
+       _spyListener = dbListenChildAdded(`messages/${groupId}`, (key, msg) => {
+          const m = document.createElement('div');
+          m.style.fontSize = '0.75rem';
+          m.style.marginBottom = '2px';
+          if (msg.type === 'system') {
+             m.style.color = '#888';
+             m.textContent = msg.text;
+          } else {
+             m.innerHTML = `<strong style="color:#aaa;">${msg.displayName||msg.username}:</strong> <span style="color:#fff;">${msg.text}</span>`;
+          }
+          msgsEl.appendChild(m);
+          msgsEl.scrollTop = msgsEl.scrollHeight;
+       });
+     });
+  };
 
   document.getElementById('mp-ann-send').addEventListener('click', async () => {
     if (!_v()) return;

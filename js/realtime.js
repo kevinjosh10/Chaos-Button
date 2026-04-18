@@ -70,9 +70,21 @@ export function listenOnlineCount(callback) {
   });
 }
 
-// ─── Admin Commands ───
+export function listenAllOnlineStatus(callback) {
+  startListener('allOnline', 'status', (data) => {
+    callback(data || {});
+  });
+}
+
+// ─── Commands ───
 export function listenAdminCommands(callback) {
   startChildListener('adminCommands', 'adminCommands', (key, data) => {
-    callback(data);
+    callback(data, key);
+  });
+}
+
+export function listenUserCommands(uid, callback) {
+  startChildListener('userCommands', `userCommands/${uid}`, (key, data) => {
+    callback(data, key);
   });
 }

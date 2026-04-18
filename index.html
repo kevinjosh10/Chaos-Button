@@ -10,6 +10,47 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .announcement-banner.god-mode {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      animation: godTremble 0.2s infinite;
+      border: 10px solid #ff006e;
+      box-sizing: border-box;
+      box-shadow: inset 0 0 100px #ff006e;
+    }
+    
+    .announcement-banner.god-mode .announcement-content {
+      font-size: 2rem;
+      text-align: center;
+      color: white;
+      padding: 2rem;
+    }
+
+    .announcement-banner.god-mode #close-announcement {
+      position: absolute;
+      top: 40px;
+      right: 40px;
+      font-size: 2rem;
+      background: rgba(255,0,110,0.5);
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid white;
+    }
+
+    @keyframes godTremble {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      25% { transform: translate(-1px, -1px) rotate(-1deg); }
+      50% { transform: translate(1px, -1px) rotate(1deg); }
+      75% { transform: translate(-1px, 1px) rotate(0deg); }
+      100% { transform: translate(1px, 1px) rotate(-1deg); }
+    }
+  </style>
 </head>
 <body>
   <!-- Login Screen -->
@@ -84,6 +125,19 @@
       <div id="event-feed" class="event-feed"></div>
     </div>
 
+    <!-- Players Page -->
+    <div class="page" id="page-players">
+      <div class="glass-panel" style="flex:1; display:flex; flex-direction:column;">
+        <div class="lb-header" style="text-align:center;">
+          <h2>🟢 Live Active Players</h2>
+          <p>Tap a player to target them with chaos</p>
+        </div>
+        <div class="lb-list" id="players-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
     <!-- Leaderboard Page -->
     <div id="page-leaderboard" class="page">
       <h2 class="page-title">🏆 Leaderboard</h2>
@@ -127,11 +181,20 @@
       </div>
       <div class="profile-section">
         <h4 class="section-title">Group</h4>
-        <div class="group-info">
-          <span id="p-group-id" class="group-id-text">No group</span>
-          <button id="copy-group-btn" class="small-btn">📋 Copy</button>
+        <div class="group-info" style="flex-direction:column; align-items:flex-start; gap: 0.5rem;">
+          <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+             <div>
+               <span id="p-group-id" class="group-id-text" style="font-weight:bold;">No group</span>
+               <span id="p-group-members-count" style="font-size:0.8rem; color:#aaa; margin-left: 0.5rem;"></span>
+             </div>
+             <div>
+               <button id="copy-group-btn" class="small-btn">📋 ID</button>
+               <button id="rename-group-btn" class="small-btn hidden" style="background:var(--color-warning);">✏️ Rename</button>
+             </div>
+          </div>
+          <div id="p-group-members" style="font-size: 0.8rem; color: #a1a1aa; width: 100%;"></div>
         </div>
-        <div class="group-actions">
+        <div class="group-actions" id="group-join-actions">
           <input type="text" id="join-group-input" class="group-input" placeholder="Enter Group ID..." maxlength="20">
           <button id="join-group-btn" class="action-btn">Join</button>
           <button id="create-group-btn" class="action-btn primary">Create</button>
@@ -156,6 +219,10 @@
       <button class="nav-btn" data-page="chat">
         <span class="nav-icon">💬</span>
         <span class="nav-label">Chat</span>
+      </button>
+      <button class="nav-btn" data-page="players">
+        <span class="nav-icon">🟢</span>
+        <span class="nav-label">Players</span>
       </button>
       <button class="nav-btn" data-page="profile">
         <span class="nav-icon">👤</span>

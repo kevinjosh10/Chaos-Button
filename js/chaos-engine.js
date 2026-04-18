@@ -122,10 +122,97 @@ export function triggerChaos() {
   };
 }
 
-// Force a specific tier (admin power)
+// ─── Nuke Effect ───
+function fxNuke() {
+  _chaosLevel = 100;
+  addBodyClass('chaos-nuke', 8000);
+  
+  // Visuals
+  const fx = document.getElementById('fx-container');
+  if (fx) {
+    fx.innerHTML = '';
+    const flash = document.createElement('div');
+    flash.style.position = 'fixed';
+    flash.style.top = '0'; flash.style.left = '0';
+    flash.style.width = '100vw'; flash.style.height = '100vh';
+    flash.style.backgroundColor = 'rgba(255, 0, 0, 0.4)';
+    flash.style.zIndex = '9999';
+    flash.style.pointerEvents = 'none';
+    flash.style.animation = 'flashStrobe 0.1s infinite alternate';
+    fx.appendChild(flash);
+    setTimeout(() => flash.remove(), 8000);
+    
+    // Add jitter
+    document.body.style.animation = 'extremeJitter 0.05s infinite alternate';
+    setTimeout(() => { document.body.style.animation = ''; }, 8000);
+  }
+
+  // Audio Synthesis
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    // Siren
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + 1);
+    osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + 2);
+    osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + 3);
+    osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + 4);
+    
+    const sGain = ctx.createGain();
+    sGain.gain.setValueAtTime(0.3, ctx.currentTime);
+    osc.connect(sGain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 5);
+    
+    // Explosion Rumble
+    const bufferSize = ctx.sampleRate * 4;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1000, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 3.5);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4);
+
+    noise.connect(filter).connect(gain).connect(ctx.destination);
+    noise.start(ctx.currentTime + 1); // Delay explosion slightly after siren starts
+  } catch(e) {}
+}
+
+const style = document.createElement('style');
+style.textContent = `
+@keyframes flashStrobe { from { opacity: 0; } to { opacity: 1; } }
+@keyframes extremeJitter { 
+  0% { transform: translate(5px, 5px) rotate(1deg) scale(1.02); }
+  25% { transform: translate(-5px, -5px) rotate(-1deg) scale(0.98); }
+  50% { transform: translate(5px, -5px) rotate(1deg) scale(1.05); }
+  75% { transform: translate(-5px, 5px) rotate(-1deg) scale(0.95); }
+  100% { transform: translate(5px, 5px) rotate(1deg) scale(1.02); }
+}
+.chaos-nuke { filter: contrast(150%) saturate(200%) hue-rotate(-20deg); }
+`;
+document.head.appendChild(style);
+
+// ─── Core Export ───
 export function forceEffect(tier) {
   let chosen;
-  if (tier === 'rare') {
+  if (tier === 'nuke') {
+    fxNuke();
+    return { tier, effect: { id: 'nuke', name: 'NUCLEAR OPTION' }, combo: [], chaosLevel: 100 };
+  } else if (tier === 'rare') {
     chosen = pickRandom(RARE_EFFECTS);
     _chaosLevel = Math.min(100, _chaosLevel + 30);
   } else if (tier === 'medium') {

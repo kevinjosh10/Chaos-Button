@@ -2,10 +2,10 @@
 import { dbPush, dbUpdate, dbGet, getNow, getTodayKey, getWeekKey } from './firebase.js';
 import { initAuth, loginUser, getCurrentUser, processInput, isElevated, incrementClicks, getUserId } from './auth.js';
 import { triggerChaos, getChaosLevel, startCooldown, isCooldownActive, forceEffect } from './chaos-engine.js';
-import { createGroup, joinGroup, sendMessage, listenMessages, stopMessageListener } from './social.js';
+import { createGroup, joinGroup, sendMessage, listenMessages, stopMessageListener, getGroupInfo, renameGroup } from './social.js';
 import { updateLeaderboard, listenLeaderboard, stopLeaderboardListener, checkAchievements, getAllAchievements } from './gamification.js';
 import { injectNavButton, renderDashboard } from './metrics.js';
-import { listenAnnouncements, listenGlobalClicks, stopAllListeners, listenAdminCommands } from './realtime.js';
+import { listenAnnouncements, listenGlobalClicks, stopAllListeners, listenAdminCommands, listenAllOnlineStatus, listenUserCommands } from './realtime.js';
 import { canClick, batchWrite, flushBatch, startCleanupCycle } from './performance.js';
 
 // ─── DOM References ───
@@ -184,6 +184,15 @@ function bindAppEvents() {
   createGroupBtn.addEventListener('click', handleCreateGroup);
   joinGroupBtn.addEventListener('click', handleJoinGroup);
   copyGroupBtn.addEventListener('click', handleCopyGroupId);
+  $('rename-group-btn').addEventListener('click', async () => {
+    const user = getCurrentUser();
+    if (!user || !user.groupId) return;
+    const newName = prompt("Enter new faction name:", "");
+    if (newName && newName.trim().length > 2) {
+      const res = await renameGroup(user.groupId, newName.trim());
+      if (res) updateProfileUI(user);
+    }
+  });
 
   // Announcement close
   closeAnnouncement.addEventListener('click', () => {
@@ -442,12 +451,42 @@ function updateProfileUI(user) {
   pDaily.textContent = formatNumber(user.dailyClicks || 0);
   totalClicksEl.textContent = formatNumber(user.totalClicks || 0);
 
+  const renameBtn = $('rename-group-btn');
+  const membersEl = $('p-group-members');
+  const membersCountEl = $('p-group-members-count');
+  const joinActions = $('group-join-actions');
+  
   if (user.groupId) {
-    pGroupId.textContent = user.groupId;
-    groupIdDisplay.textContent = user.groupId;
+    pGroupId.textContent = "Loading...";
+    
+    getGroupInfo(user.groupId).then(g => {
+      if (g) {
+        pGroupId.textContent = g.name || user.groupId;
+        groupIdDisplay.textContent = g.name || user.groupId;
+        if (joinActions) joinActions.classList.add('hidden');
+        
+        if (g.createdBy === user.id) {
+           renameBtn.classList.remove('hidden');
+        } else {
+           renameBtn.classList.add('hidden');
+        }
+        
+        const memIds = Object.keys(g.members || {});
+        membersCountEl.textContent = `(${memIds.length} members)`;
+        membersEl.textContent = `Group ID: ${user.groupId}`;
+      } else {
+        pGroupId.textContent = user.groupId;
+        groupIdDisplay.textContent = user.groupId;
+      }
+    });
+
   } else {
     pGroupId.textContent = 'No group';
     groupIdDisplay.textContent = 'No Group';
+    membersCountEl.textContent = '';
+    membersEl.textContent = '';
+    renameBtn.classList.add('hidden');
+    if (joinActions) joinActions.classList.remove('hidden');
   }
 }
 
@@ -551,10 +590,77 @@ function startRealtimeListeners() {
     globalClicksEl.textContent = formatNumber(count);
   });
 
+  // Targeted Attacks
+  const user = getCurrentUser();
+  if (user) {
+    listenUserCommands(user.id, (data, key) => {
+       if (!data) return;
+       if (data.timestamp && data.timestamp < BOOT_TIME) return;
+       if (user.role === 'god') return; // God immunity
+       
+       if (data.type === 'targeted_effect' && data.tier) {
+         forceEffect(data.tier);
+         
+         const toast = document.createElement('div');
+         toast.className = 'achievement-toast show';
+         toast.innerHTML = `<span class="ach-icon">🎯</span><div class="ach-info"><strong>Rival Strike</strong><span>${escapeHtml(data.senderName)} sent ${data.tier} chaos!</span></div>`;
+         document.body.appendChild(toast);
+         setTimeout(() => { toast.classList.remove('show'); setTimeout(()=>toast.remove(), 500); }, 3000);
+       }
+    });
+  }
+
+  // Live Players list
+  listenAllOnlineStatus((statusData) => {
+     const listEl = $('players-list');
+     if (!listEl) return;
+     const now = Date.now();
+     
+     const onlineUids = Object.keys(statusData).filter(uid => statusData[uid].state === 'online');
+     const targets = onlineUids.filter(uid => uid !== user?.id);
+     
+     if (targets.length === 0) {
+       listEl.innerHTML = '<div class="lb-empty">No other active players right now.</div>';
+       return;
+     }
+     
+     listEl.innerHTML = targets.map((uid) => {
+        return `
+          <div class="lb-item" style="cursor:pointer;" onclick="window.targetPlayer('${uid}')">
+            <span class="lb-rank">🟢</span>
+            <div class="lb-info">
+              <div class="lb-name">Player_${uid.slice(-4)}</div>
+            </div>
+            <span class="lb-clicks" style="color:var(--color-primary); font-size: 0.8rem;">Target 🎯</span>
+          </div>
+        `;
+     }).join('');
+  });
+  
+  window.targetPlayer = async (uid) => {
+    if (!uid) return;
+    const choice = confirm("Launch a tactical strike against this player?\\n\\n[OK] for Rare Chaos\\n[Cancel] for Medium Chaos");
+    const tier = choice ? 'rare' : 'medium';
+    const sender = getCurrentUser();
+    
+    import('./firebase.js').then(({ dbPush }) => {
+      dbPush(`userCommands/${uid}`, {
+        type: 'targeted_effect',
+        tier: tier,
+        senderId: sender.id,
+        senderName: sender.displayName || sender.username,
+        timestamp: Date.now()
+      }).then(() => alert(`Strategic ${tier} chaos payload sent.`));
+    });
+  };
+
   // Admin Commands
   listenAdminCommands((data) => {
     if (!data || !data.timestamp || data.timestamp < BOOT_TIME) return;
     const user = getCurrentUser();
+    
+    // God immunity from all remote commands
+    if (user?.role === 'god' && data.senderId !== user.id) return;
     
     // Commands targeted at specific users
     if (data.type === 'reload') {

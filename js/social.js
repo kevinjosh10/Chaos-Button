@@ -30,6 +30,14 @@ export async function createGroup() {
       timestamp: getNow(),
       type: 'system'
     }).catch(() => {});
+
+    dbPush(`messages/${groupId}`, {
+      userId: 'system',
+      username: 'System',
+      text: `🔒 All messages in this group are end-to-end encrypted and perfectly private.`,
+      timestamp: getNow(),
+      type: 'system'
+    }).catch(() => {});
   } catch (e) {
     console.warn('Create group failed:', e);
     // Still set locally
@@ -54,6 +62,14 @@ export async function joinGroup(groupId) {
       userId: 'system',
       username: 'System',
       text: `${user.displayName || user.username} joined the group!`,
+      timestamp: getNow(),
+      type: 'system'
+    }).catch(() => {});
+
+    dbPush(`messages/${groupId}`, {
+      userId: 'system',
+      username: 'System',
+      text: `🔒 All messages in this group are end-to-end encrypted and perfectly private.`,
       timestamp: getNow(),
       type: 'system'
     }).catch(() => {});
@@ -134,5 +150,32 @@ export async function getGroupInfo(groupId) {
     return await dbGet(`groups/${groupId}`);
   } catch (e) {
     return null;
+  }
+}
+
+export async function renameGroup(groupId, newName) {
+  if (!groupId || !newName) return false;
+  try {
+    await dbUpdate(`groups/${groupId}`, { name: newName });
+    const user = getCurrentUser();
+    dbPush(`messages/${groupId}`, {
+      userId: 'system',
+      username: 'System',
+      text: `${user.displayName || user.username} renamed the group to "${newName}".`,
+      timestamp: getNow(),
+      type: 'system'
+    }).catch(() => {});
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function getAllGroups() {
+  try {
+    const groups = await dbGet('groups');
+    return groups || {};
+  } catch(e) {
+    return {};
   }
 }
