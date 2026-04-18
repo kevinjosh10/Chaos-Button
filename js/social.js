@@ -12,23 +12,29 @@ export async function createGroup() {
 
   const groupId = 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
 
-  await dbSet(`groups/${groupId}`, {
-    name: `${user.username}'s Group`,
-    createdBy: user.id,
-    createdAt: getNow(),
-    members: { [user.id]: true }
-  });
+  try {
+    await dbSet(`groups/${groupId}`, {
+      name: `${user.username}'s Group`,
+      createdBy: user.id,
+      createdAt: getNow(),
+      members: { [user.id]: true }
+    });
 
-  await updateUserField('groupId', groupId);
+    await updateUserField('groupId', groupId);
 
-  // System message
-  await dbPush(`messages/${groupId}`, {
-    userId: 'system',
-    username: 'System',
-    text: `${user.username} created the group!`,
-    timestamp: getNow(),
-    type: 'system'
-  });
+    // System message
+    dbPush(`messages/${groupId}`, {
+      userId: 'system',
+      username: 'System',
+      text: `${user.username} created the group!`,
+      timestamp: getNow(),
+      type: 'system'
+    }).catch(() => {});
+  } catch (e) {
+    console.warn('Create group failed:', e);
+    // Still set locally
+    user.groupId = groupId;
+  }
 
   return groupId;
 }
@@ -37,23 +43,26 @@ export async function joinGroup(groupId) {
   const user = getCurrentUser();
   if (!user || !groupId) return false;
 
-  const group = await dbGet(`groups/${groupId}`);
-  if (!group) return false;
+  try {
+    const group = await dbGet(`groups/${groupId}`);
+    if (!group) return false;
 
-  // Add member
-  await dbUpdate(`groups/${groupId}/members`, { [user.id]: true });
-  await updateUserField('groupId', groupId);
+    await dbUpdate(`groups/${groupId}/members`, { [user.id]: true });
+    await updateUserField('groupId', groupId);
 
-  // System message
-  await dbPush(`messages/${groupId}`, {
-    userId: 'system',
-    username: 'System',
-    text: `${user.username} joined the group!`,
-    timestamp: getNow(),
-    type: 'system'
-  });
+    dbPush(`messages/${groupId}`, {
+      userId: 'system',
+      username: 'System',
+      text: `${user.username} joined the group!`,
+      timestamp: getNow(),
+      type: 'system'
+    }).catch(() => {});
 
-  return true;
+    return true;
+  } catch (e) {
+    console.warn('Join group failed:', e);
+    return false;
+  }
 }
 
 export async function leaveGroup() {
@@ -62,19 +71,21 @@ export async function leaveGroup() {
 
   const groupId = user.groupId;
 
-  // System message
-  await dbPush(`messages/${groupId}`, {
-    userId: 'system',
-    username: 'System',
-    text: `${user.username} left the group.`,
-    timestamp: getNow(),
-    type: 'system'
-  });
+  try {
+    dbPush(`messages/${groupId}`, {
+      userId: 'system',
+      username: 'System',
+      text: `${user.username} left the group.`,
+      timestamp: getNow(),
+      type: 'system'
+    }).catch(() => {});
 
-  await dbUpdate(`groups/${groupId}/members`, { [user.id]: null });
-  await updateUserField('groupId', null);
+    dbUpdate(`groups/${groupId}/members`, { [user.id]: null }).catch(() => {});
+    await updateUserField('groupId', null);
+  } catch (e) {
+    console.warn('Leave group failed:', e);
+  }
 
-  // Stop listening
   stopMessageListener();
 }
 
@@ -83,13 +94,17 @@ export async function sendMessage(text) {
   const user = getCurrentUser();
   if (!user || !user.groupId || !text.trim()) return;
 
-  await dbPush(`messages/${user.groupId}`, {
-    userId: user.id,
-    username: user.username,
-    text: text.trim(),
-    timestamp: getNow(),
-    type: 'user'
-  });
+  try {
+    await dbPush(`messages/${user.groupId}`, {
+      userId: user.id,
+      username: user.username,
+      text: text.trim(),
+      timestamp: getNow(),
+      type: 'user'
+    });
+  } catch (e) {
+    console.warn('Send message failed:', e);
+  }
 }
 
 export function listenMessages(groupId, callback) {
@@ -114,5 +129,9 @@ export function stopMessageListener() {
 
 export async function getGroupInfo(groupId) {
   if (!groupId) return null;
-  return await dbGet(`groups/${groupId}`);
+  try {
+    return await dbGet(`groups/${groupId}`);
+  } catch (e) {
+    return null;
+  }
 }
