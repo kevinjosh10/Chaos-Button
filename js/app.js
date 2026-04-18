@@ -610,6 +610,22 @@ function startRealtimeListeners() {
     });
   }
 
+  // UI Helpers for custom modals
+  window.customConfirm = (title, desc, onConfirm) => {
+    const m = $('custom-confirm-modal');
+    $('cc-title').textContent = title;
+    $('cc-desc').textContent = desc;
+    m.classList.remove('hidden');
+    
+    const cancel = () => { m.classList.add('hidden'); };
+    const confirm = () => { m.classList.add('hidden'); onConfirm(); };
+    
+    const btnCancel = $('cc-cancel');
+    const btnConfirm = $('cc-confirm');
+    btnCancel.onclick = cancel;
+    btnConfirm.onclick = confirm;
+  };
+
   // Live Players list
   listenAllOnlineStatus((statusData) => {
      const listEl = $('players-list');
@@ -624,34 +640,55 @@ function startRealtimeListeners() {
        return;
      }
      
-     listEl.innerHTML = targets.map((uid) => {
-        return `
-          <div class="lb-item" style="cursor:pointer;" onclick="window.targetPlayer('${uid}')">
-            <span class="lb-rank">🟢</span>
-            <div class="lb-info">
-              <div class="lb-name">Player_${uid.slice(-4)}</div>
-            </div>
-            <span class="lb-clicks" style="color:var(--color-primary); font-size: 0.8rem;">Target 🎯</span>
-          </div>
-        `;
-     }).join('');
+     import('./firebase.js').then(({ dbGet }) => {
+       dbGet('users').then(allUsers => {
+         listEl.innerHTML = targets.map((uid) => {
+            const dName = allUsers && allUsers[uid] ? (allUsers[uid].displayName || allUsers[uid].username) : `Player_${uid.slice(-4)}`;
+            const safeName = dName.replace(/'/g, "\\\\'");
+            return `
+              <div class="lb-item" style="cursor:pointer;" onclick="window.targetPlayer('${uid}', '${safeName}')">
+                <span class="lb-rank">🟢</span>
+                <div class="lb-info">
+                  <div class="lb-name">${escapeHtml(dName)}</div>
+                </div>
+                <span class="lb-clicks" style="color:var(--color-primary); font-size: 0.8rem;">Target 🎯</span>
+              </div>
+            `;
+         }).join('');
+       });
+     });
   });
   
-  window.targetPlayer = async (uid) => {
+  window.targetPlayer = (uid, name) => {
     if (!uid) return;
-    const choice = confirm("Launch a tactical strike against this player?\\n\\n[OK] for Rare Chaos\\n[Cancel] for Medium Chaos");
-    const tier = choice ? 'rare' : 'medium';
+    const m = $('target-modal');
+    $('target-modal-name').textContent = name;
+    m.classList.remove('hidden');
+    
     const sender = getCurrentUser();
     
-    import('./firebase.js').then(({ dbPush }) => {
-      dbPush(`userCommands/${uid}`, {
-        type: 'targeted_effect',
-        tier: tier,
-        senderId: sender.id,
-        senderName: sender.displayName || sender.username,
-        timestamp: Date.now()
-      }).then(() => alert(`Strategic ${tier} chaos payload sent.`));
-    });
+    const sendStrike = (tier) => {
+      m.classList.add('hidden');
+      import('./firebase.js').then(({ dbPush }) => {
+        dbPush(`userCommands/${uid}`, {
+          type: 'targeted_effect',
+          tier: tier,
+          senderId: sender.id,
+          senderName: sender.displayName || sender.username,
+          timestamp: Date.now()
+        }).then(() => {
+          const toast = document.createElement('div');
+          toast.className = 'achievement-toast show';
+          toast.innerHTML = `<span class="ach-icon">✅</span><div class="ach-info"><strong>Payload Sent</strong><span>Missile away to ${escapeHtml(name)}.</span></div>`;
+          document.body.appendChild(toast);
+          setTimeout(() => { toast.classList.remove('show'); setTimeout(()=>toast.remove(), 500); }, 3000);
+        });
+      });
+    };
+    
+    $('strike-rare').onclick = () => sendStrike('rare');
+    $('strike-medium').onclick = () => sendStrike('medium');
+    $('strike-cancel').onclick = () => m.classList.add('hidden');
   };
 
   // Admin Commands
