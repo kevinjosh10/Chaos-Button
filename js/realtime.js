@@ -30,17 +30,22 @@ export function stopAllListeners() {
 // ─── Announcement Listener ───
 export function listenAnnouncements(callback) {
   startListener('announcements', 'announcements', (data) => {
-    if (!data) {
+    if (!data || typeof data !== 'object') {
       callback(null);
       return;
     }
-    // Get most recent active announcement
-    const entries = Object.entries(data);
-    const active = entries
-      .map(([k, v]) => ({ id: k, ...v }))
-      .filter(a => a.active !== false)
-      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    callback(active.length > 0 ? active[0] : null);
+    try {
+      // Get most recent active announcement
+      const entries = Object.entries(data);
+      const active = entries
+        .filter(([k, v]) => v && typeof v === 'object' && typeof v.text === 'string' && v.text.length > 0)
+        .map(([k, v]) => ({ id: k, ...v }))
+        .filter(a => a.active !== false)
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      callback(active.length > 0 ? active[0] : null);
+    } catch (e) {
+      callback(null);
+    }
   });
 }
 
