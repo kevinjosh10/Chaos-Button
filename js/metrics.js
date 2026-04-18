@@ -58,7 +58,7 @@ export function renderDashboard() {
         <h4>👁️ Omni-Sight (Spy Groups)</h4>
         <button class="panel-btn primary" id="mp-load-groups" style="width:100%; margin-bottom: 1rem;">Load Active Factions</button>
         <div id="mp-groups-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 1rem;"></div>
-        <div id="mp-spy-chat" class="panel-log" style="height: 200px; display:none; flex-direction:column; background: #000; border: 1px solid #333;"></div>
+        <div id="mp-spy-chat" class="panel-log" style="height: 250px; display:none; flex-direction:column; background: #050505; border: 1px solid var(--color-primary); box-shadow: 0 0 20px rgba(0, 240, 255, 0.1); border-radius: 8px;"></div>
       </div>
 
       <div class="panel-card">
@@ -142,10 +142,24 @@ function _bindEvents() {
 
   document.getElementById('mp-nuke-global').addEventListener('click', async () => {
     if (!_v()) return;
-    if (!confirm("Launch nuclear strike against all clients?")) return;
-    const user = getCurrentUser();
-    dbPush('adminCommands', { type: 'force_effect', tier: 'nuke', senderId: user.id, timestamp: getNow() });
-    await _logActivity('☢️ NUKE launched globally by admin');
+    
+    if (window.customConfirm) {
+        window.customConfirm("LAUNCH NUKE", "Warning: This will hit all active clients with an intense audio-visual storm. Deploy?", async () => {
+          const user = getCurrentUser();
+          dbPush('adminCommands', { type: 'force_effect', tier: 'nuke', senderId: user.id, timestamp: getNow() });
+          await _logActivity('☢️ NUKE launched globally by admin');
+          
+          const t = document.createElement('div');
+          t.className = 'achievement-toast show';
+          t.innerHTML = `<span class="ach-icon">☢️</span><div class="ach-info"><strong>NUKE DEPLOYED</strong><span>All standard clients hit.</span></div>`;
+          document.body.appendChild(t);
+          setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 500); }, 4000);
+        });
+    } else {
+        const user = getCurrentUser();
+        dbPush('adminCommands', { type: 'force_effect', tier: 'nuke', senderId: user.id, timestamp: getNow() });
+        await _logActivity('☢️ NUKE launched globally by admin');
+    }
   });
 
   // Omni-sight logic
@@ -173,19 +187,21 @@ function _bindEvents() {
      if (_spyListener) dbOff(_spyListener);
      const chatBox = document.getElementById('mp-spy-chat');
      chatBox.style.display = 'flex';
-     chatBox.innerHTML = `<div style="padding:4px; background:#111; border-bottom:1px solid #333; font-weight:bold; color:var(--color-primary); flex-shrink:0;">Wiretapping: ${groupName}</div><div id="mp-spy-msgs" style="flex:1; overflow-y:auto; padding:4px;"></div>`;
+     chatBox.innerHTML = `<div style="padding:8px; background:#000; border-bottom:1px solid var(--color-primary); font-weight:bold; color:var(--color-primary); flex-shrink:0; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:8px;"><span style="animation: flashStrobe 1s infinite alternate;">🔴</span> WIRETAP: ${groupName}</div><div id="mp-spy-msgs" style="flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:8px;"></div>`;
      
      const msgsEl = document.getElementById('mp-spy-msgs');
      import('./firebase.js').then(({ dbListenChildAdded }) => {
        _spyListener = dbListenChildAdded(`messages/${groupId}`, (key, msg) => {
           const m = document.createElement('div');
-          m.style.fontSize = '0.75rem';
-          m.style.marginBottom = '2px';
+          m.style.fontSize = '0.85rem';
+          m.style.lineHeight = '1.4';
           if (msg.type === 'system') {
-             m.style.color = '#888';
-             m.textContent = msg.text;
+             m.style.color = '#6b7280';
+             m.style.fontStyle = 'italic';
+             m.style.textAlign = 'center';
+             m.innerHTML = `[sys] ${msg.text}`;
           } else {
-             m.innerHTML = `<strong style="color:#aaa;">${msg.displayName||msg.username}:</strong> <span style="color:#fff;">${msg.text}</span>`;
+             m.innerHTML = `<strong style="color:var(--color-primary);">${msg.displayName||msg.username}</strong>: <span style="color:#e5e7eb;">${msg.text}</span>`;
           }
           msgsEl.appendChild(m);
           msgsEl.scrollTop = msgsEl.scrollHeight;
