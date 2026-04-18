@@ -504,8 +504,8 @@ function showAchievementToast(ach) {
 function startRealtimeListeners() {
   // Announcements
   listenAnnouncements((announcement) => {
-    if (announcement) {
-      announcementText.textContent = `📢 ${announcement.text}`;
+    if (announcement && announcement.text) {
+      announcementText.textContent = announcement.text;
       announcementBanner.classList.remove('hidden');
     } else {
       announcementBanner.classList.add('hidden');
@@ -520,10 +520,14 @@ function startRealtimeListeners() {
 }
 
 async function updateGlobalClicks() {
-  const stats = await dbGet('globalStats');
-  if (stats && stats.totalClicks) {
-    globalTotalClicks = stats.totalClicks;
-    globalClicksEl.textContent = formatNumber(globalTotalClicks);
+  try {
+    const stats = await dbGet('globalStats');
+    if (stats && stats.totalClicks) {
+      globalTotalClicks = stats.totalClicks;
+      globalClicksEl.textContent = formatNumber(globalTotalClicks);
+    }
+  } catch (e) {
+    console.warn('Could not load global stats:', e);
   }
 }
 
