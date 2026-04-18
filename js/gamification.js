@@ -5,22 +5,17 @@ import { getCurrentUser } from './auth.js';
 // ─── Leaderboard ───
 let _lbListeners = {};
 
-export async function updateLeaderboard(userId, username, clicks) {
+export async function updateLeaderboard(userId, displayName, clicks) {
   const todayKey = getTodayKey();
   const weekKey = getWeekKey();
   const user = getCurrentUser();
   if (!user) return;
 
-  const updates = {};
-  updates[`leaderboards/alltime/${userId}`] = { username, clicks: user.totalClicks };
-  updates[`leaderboards/daily/${todayKey}/${userId}`] = { username, clicks: user.dailyClicks };
-  updates[`leaderboards/weekly/${weekKey}/${userId}`] = { username, clicks: user.weeklyClicks };
-
   // Use individual sets to avoid permission issues
   try {
-    await dbSet(`leaderboards/alltime/${userId}`, { username, clicks: user.totalClicks });
-    await dbSet(`leaderboards/daily/${todayKey}/${userId}`, { username, clicks: user.dailyClicks });
-    await dbSet(`leaderboards/weekly/${weekKey}/${userId}`, { username, clicks: user.weeklyClicks });
+    await dbSet(`leaderboards/alltime/${userId}`, { displayName, username: displayName, clicks: user.totalClicks });
+    await dbSet(`leaderboards/daily/${todayKey}/${userId}`, { displayName, username: displayName, clicks: user.dailyClicks });
+    await dbSet(`leaderboards/weekly/${weekKey}/${userId}`, { displayName, username: displayName, clicks: user.weeklyClicks });
   } catch (e) {
     console.warn('Leaderboard update failed:', e);
   }
@@ -53,7 +48,7 @@ function _getLeaderboardPath(period) {
 function _sortLeaderboard(data) {
   if (!data) return [];
   return Object.entries(data)
-    .map(([id, val]) => ({ id, username: val.username, clicks: val.clicks || 0 }))
+    .map(([id, val]) => ({ id, displayName: val.displayName || val.username, username: val.username, clicks: val.clicks || 0 }))
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, 50);
 }

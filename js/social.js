@@ -12,9 +12,9 @@ export async function createGroup() {
 
   const groupId = 'g_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
 
-  try {
+    try {
     await dbSet(`groups/${groupId}`, {
-      name: `${user.username}'s Group`,
+      name: `${user.displayName || user.username}'s Group`,
       createdBy: user.id,
       createdAt: getNow(),
       members: { [user.id]: true }
@@ -26,7 +26,7 @@ export async function createGroup() {
     dbPush(`messages/${groupId}`, {
       userId: 'system',
       username: 'System',
-      text: `${user.username} created the group!`,
+      text: `${user.displayName || user.username} created the group!`,
       timestamp: getNow(),
       type: 'system'
     }).catch(() => {});
@@ -53,7 +53,7 @@ export async function joinGroup(groupId) {
     dbPush(`messages/${groupId}`, {
       userId: 'system',
       username: 'System',
-      text: `${user.username} joined the group!`,
+      text: `${user.displayName || user.username} joined the group!`,
       timestamp: getNow(),
       type: 'system'
     }).catch(() => {});
@@ -75,7 +75,7 @@ export async function leaveGroup() {
     dbPush(`messages/${groupId}`, {
       userId: 'system',
       username: 'System',
-      text: `${user.username} left the group.`,
+      text: `${user.displayName || user.username} left the group.`,
       timestamp: getNow(),
       type: 'system'
     }).catch(() => {});
@@ -98,6 +98,7 @@ export async function sendMessage(text) {
     await dbPush(`messages/${user.groupId}`, {
       userId: user.id,
       username: user.username,
+      displayName: user.displayName || user.username,
       text: text.trim(),
       timestamp: getNow(),
       type: 'user'
