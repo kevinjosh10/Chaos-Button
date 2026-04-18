@@ -213,15 +213,15 @@ function getChaosBtn() {
 // ═══════════════════════════════════════
 
 function fxShake() {
-  addBodyClass('fx-shake', 500);
+  addBodyClass('fx-shake', 3000); // 3s instead of 5s to avoid complete motion sickness, but much longer than 0.5s
 }
 
 function fxColorFlash() {
-  addBodyClass('fx-color-flash', 800);
+  addBodyClass('fx-color-flash', 5000);
 }
 
 function fxGradient() {
-  addBodyClass('fx-gradient', 2000);
+  addBodyClass('fx-gradient', 5000);
 }
 
 function fxEmojiRain() {
@@ -332,7 +332,7 @@ function fxCursorTrail() {
     dot.style.left = (e.touches ? e.touches[0].clientX : e.clientX) + 'px';
     dot.style.top = (e.touches ? e.touches[0].clientY : e.clientY) + 'px';
     container.appendChild(dot);
-    setTimeout(() => dot.remove(), 600);
+    setTimeout(() => dot.remove(), 800);
   };
   document.addEventListener('mousemove', _trailHandler);
   document.addEventListener('touchmove', _trailHandler);
@@ -340,25 +340,25 @@ function fxCursorTrail() {
     document.removeEventListener('mousemove', _trailHandler);
     document.removeEventListener('touchmove', _trailHandler);
     _trailActive = false;
-  }, 3000);
+  }, 5000);
 }
 
 function fxResize() {
   const btn = getChaosBtn();
   const big = Math.random() > 0.5;
   btn.classList.add(big ? 'fx-resize' : 'fx-resize-small');
-  setTimeout(() => btn.classList.remove('fx-resize', 'fx-resize-small'), 1500);
+  setTimeout(() => btn.classList.remove('fx-resize', 'fx-resize-small'), 5000);
 }
 
 function fxRotate() {
   const btn = getChaosBtn();
   btn.classList.add('fx-rotate');
-  setTimeout(() => btn.classList.remove('fx-rotate'), 900);
+  setTimeout(() => btn.classList.remove('fx-rotate'), 5000);
 }
 
 function fxGhostButtons() {
   const container = getContainer();
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 15; i++) {
     setTimeout(() => {
       const ghost = document.createElement('div');
       ghost.className = 'fx-ghost-btn';
@@ -366,15 +366,15 @@ function fxGhostButtons() {
       ghost.style.left = (Math.random() * 80 + 10) + 'vw';
       ghost.style.top = (Math.random() * 80 + 10) + 'vh';
       container.appendChild(ghost);
-      setTimeout(() => ghost.remove(), 2500);
-    }, i * 150);
+      setTimeout(() => ghost.remove(), 3500);
+    }, i * 250);
   }
 }
 
 function fxGlowPulse() {
   const btn = getChaosBtn();
   btn.classList.add('fx-glow-pulse');
-  setTimeout(() => btn.classList.remove('fx-glow-pulse'), 1700);
+  setTimeout(() => btn.classList.remove('fx-glow-pulse'), 5000);
 }
 
 function fxMemePopup() {
@@ -383,7 +383,7 @@ function fxMemePopup() {
   popup.className = 'fx-meme-popup';
   popup.textContent = pickRandom(MEMES);
   container.appendChild(popup);
-  setTimeout(() => popup.remove(), 1800);
+  setTimeout(() => popup.remove(), 5000);
 }
 
 // ═══════════════════════════════════════
@@ -391,29 +391,29 @@ function fxMemePopup() {
 // ═══════════════════════════════════════
 
 function fxBlur() {
-  addBodyClass('fx-blur', 2000);
+  addBodyClass('fx-blur', 5000);
 }
 
 function fxGrayscale() {
-  addBodyClass('fx-grayscale', 2500);
+  addBodyClass('fx-grayscale', 5000);
 }
 
 function fxInvert() {
-  addBodyClass('fx-invert', 1500);
+  addBodyClass('fx-invert', 5000);
 }
 
 function fxGlitch() {
-  addBodyClass('fx-glitch', 1500);
+  addBodyClass('fx-glitch', 5000);
 }
 
 function fxLayoutShift() {
-  addBodyClass('fx-layout-shift', 1500);
+  addBodyClass('fx-layout-shift', 5000);
 }
 
 function fxButtonMove() {
   const wrapper = document.getElementById('chaos-button-wrapper');
   wrapper.classList.add('fx-button-move');
-  setTimeout(() => wrapper.classList.remove('fx-button-move'), 1800);
+  setTimeout(() => wrapper.classList.remove('fx-button-move'), 5000);
 }
 
 function fxFakePopup() {
@@ -422,7 +422,7 @@ function fxFakePopup() {
   popup.className = 'fx-fake-popup';
   popup.innerHTML = `<h3>${pickRandom(['⚠️ Warning', '🔒 Security', '📡 Alert', '🧪 Experiment'])}</h3><p>${pickRandom(FAKE_MESSAGES)}</p>`;
   container.appendChild(popup);
-  setTimeout(() => popup.remove(), 2500);
+  setTimeout(() => popup.remove(), 5000);
 }
 
 function fxFakeLoading() {
@@ -431,11 +431,11 @@ function fxFakeLoading() {
   overlay.className = 'fx-fake-loading';
   overlay.innerHTML = `<div class="spinner"></div><p>${pickRandom(FAKE_LOADING_MSGS)}</p>`;
   container.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 3500);
+  setTimeout(() => overlay.remove(), 5000);
 }
 
 function fxJitter() {
-  addBodyClass('fx-jitter', 1500);
+  addBodyClass('fx-jitter', 5000);
 }
 
 // ═══════════════════════════════════════
