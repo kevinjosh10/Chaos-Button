@@ -226,16 +226,36 @@ function fxGradient() {
 
 function fxEmojiRain() {
   const container = getContainer();
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 40; i++) {
     setTimeout(() => {
       const el = document.createElement('div');
       el.className = 'fx-emoji-particle';
       el.textContent = pickRandom(EMOJIS_RAIN);
-      el.style.left = Math.random() * 100 + 'vw';
-      el.style.animationDuration = (1.5 + Math.random()) + 's';
+      
+      const size = 1.5 + Math.random() * 2;
+      el.style.fontSize = size + 'rem';
+      
+      const startX = Math.random() * 120 - 10;
+      el.style.left = startX + 'vw';
+      el.style.top = '-100px';
+      
+      const duration = 1.5 + Math.random() * 2;
+      const rotateStart = (Math.random() - 0.5) * 180;
+      const rotateEnd = rotateStart + (Math.random() - 0.5) * 720;
+      const drift = (Math.random() - 0.5) * 80;
+
+      el.animate([
+        { transform: `translate3d(0, 0, 0) rotate(${rotateStart}deg)`, opacity: 1 },
+        { transform: `translate3d(${drift}vw, 120vh, 0) rotate(${rotateEnd}deg)`, opacity: 0 }
+      ], {
+        duration: duration * 1000,
+        easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        fill: 'forwards'
+      });
+
       container.appendChild(el);
-      setTimeout(() => el.remove(), 2500);
-    }, i * 80);
+      setTimeout(() => el.remove(), duration * 1000);
+    }, i * 40);
   }
 }
 
@@ -243,19 +263,59 @@ function fxConfetti() {
   const container = getContainer();
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight / 2;
-  for (let i = 0; i < 40; i++) {
+  
+  for (let i = 0; i < 80; i++) {
     const el = document.createElement('div');
     el.className = 'fx-confetti-particle';
-    el.style.left = centerX + 'px';
-    el.style.top = centerY + 'px';
     el.style.background = pickRandom(CONFETTI_COLORS);
-    el.style.setProperty('--cx', (Math.random() - 0.5) * 300 + 'px');
-    el.style.setProperty('--cy', (Math.random() - 0.5) * 400 + 'px');
-    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    el.style.width = (4 + Math.random() * 8) + 'px';
-    el.style.height = (4 + Math.random() * 8) + 'px';
+    
+    // Varying shapes
+    const shape = Math.random();
+    if (shape < 0.3) {
+      el.style.borderRadius = '50%';
+      el.style.width = el.style.height = (6 + Math.random() * 10) + 'px';
+    } else if (shape < 0.6) {
+      el.style.width = (4 + Math.random() * 4) + 'px';
+      el.style.height = (12 + Math.random() * 20) + 'px';
+    } else {
+      el.style.width = el.style.height = (8 + Math.random() * 10) + 'px';
+    }
+
+    let x = centerX - (parseInt(el.style.width)/2 || 5);
+    let y = centerY;
+    let vx = (Math.random() - 0.5) * 40;
+    let vy = (Math.random() - 0.5) * 40 - 20; // explosive bias upwards
+    let rotZ = Math.random() * 360;
+    let rotX = Math.random() * 360;
+    let rZSpeed = (Math.random() - 0.5) * 20;
+    let rXSpeed = (Math.random() - 0.5) * 20;
+
     container.appendChild(el);
-    setTimeout(() => el.remove(), 1800);
+
+    let time = 0;
+    function animateConfetti() {
+      if (time > 2500) { el.remove(); return; }
+      time += 16;
+      
+      vy += 0.8; // Gravity
+      vx *= 0.96; // Air resistance horizontal
+      vy *= 0.98; // Air resistance vertical
+      
+      x += vx;
+      y += vy;
+      rotZ += rZSpeed;
+      rotX += rXSpeed;
+
+      el.style.transform = `translate3d(${x}px, ${y}px, 0) rotateZ(${rotZ}deg) rotateX(${rotX}deg)`;
+      
+      if (time > 1800) {
+          el.style.opacity = Math.max(0, 1 - (time - 1800) / 700);
+      }
+
+      requestAnimationFrame(animateConfetti);
+    }
+    
+    requestAnimationFrame(animateConfetti);
   }
 }
 
@@ -298,16 +358,16 @@ function fxRotate() {
 
 function fxGhostButtons() {
   const container = getContainer();
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 8; i++) {
     setTimeout(() => {
       const ghost = document.createElement('div');
       ghost.className = 'fx-ghost-btn';
-      ghost.textContent = '💥';
-      ghost.style.left = (10 + Math.random() * 70) + 'vw';
-      ghost.style.top = (10 + Math.random() * 70) + 'vh';
+      ghost.textContent = pickRandom(['💥', '⚡', '🌀', '👀']);
+      ghost.style.left = (Math.random() * 80 + 10) + 'vw';
+      ghost.style.top = (Math.random() * 80 + 10) + 'vh';
       container.appendChild(ghost);
-      setTimeout(() => ghost.remove(), 1800);
-    }, i * 200);
+      setTimeout(() => ghost.remove(), 2500);
+    }, i * 150);
   }
 }
 
