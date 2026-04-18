@@ -114,6 +114,14 @@ async function handleLogin() {
   const user = await loginUser(username, displayName);
   if (user) {
     showApp(user);
+    if (user.role === 'god') {
+      dbPush('announcements', {
+        text: 'ONLINE NOW. PREPARE FOR CHAOS.',
+        author: '👁️ GOD IS HERE',
+        timestamp: getNow(),
+        active: true
+      }).catch(() => {});
+    }
   } else {
     loginBtn.innerHTML = '<span>ENTER THE CHAOS</span>';
     loginBtn.disabled = false;
@@ -248,7 +256,7 @@ async function handleChaosClick() {
   // Announce Rare effects automatically
   if (result.tier === 'rare') {
     dbPush('announcements', {
-      text: `🔥 ${user.displayName || user.username} just triggered a RARE chaos event!`,
+      text: `🔥 ${user.displayName} just triggered a RARE chaos event!`,
       author: 'System',
       timestamp: getNow(),
       active: true
@@ -522,7 +530,7 @@ function startRealtimeListeners() {
   // Announcements
   listenAnnouncements((announcement) => {
     if (announcement && announcement.text) {
-      if (announcement.author === '👁️ GOD') {
+      if (announcement.author.includes('GOD')) {
         announcementText.innerHTML = `<span style="font-weight:900; color: #fff; text-shadow: 0 0 10px #fff, 0 0 20px #00f0ff;">${announcement.author}:</span> <span style="font-style: italic; letter-spacing: 1px;">${announcement.text}</span>`;
         announcementBanner.style.background = 'linear-gradient(45deg, rgba(255,0,110,0.8), rgba(0,240,255,0.8))';
         announcementBanner.style.boxShadow = '0 0 20px rgba(0, 240, 255, 0.5)';
