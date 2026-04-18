@@ -17,6 +17,14 @@ const _h1 = '6650c4c613fc313ac608db6bb465fb0305d97b3762c157d368b0a086d60dc684';
 const _h2 = '2e90945bf66ef33c52d5939b689dbdd02da263b72003ff68a80249fd432a47f6';
 const _vKey = 'cx_pref_v';
 
+// ─── Timeout wrapper ───
+function withTimeout(promise, ms = 5000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+}
+
 // ─── Session ───
 export function getCurrentUser() {
   return _currentUser;
@@ -33,17 +41,21 @@ export function getUserId() {
 
 export async function initAuth() {
   const uid = getUserId();
-  const data = await dbGet(`users/${uid}`);
-  if (data) {
-    _currentUser = data;
-    _currentUser.id = uid;
-    // Re-validate elevation
-    const h = await _d(_currentUser.username);
-    if (h === _h1 && localStorage.getItem(_vKey) === _h1.slice(0, 12)) {
-      _currentUser.role = 'god';
+  try {
+    const data = await withTimeout(dbGet(`users/${uid}`), 4000);
+    if (data) {
+      _currentUser = data;
+      _currentUser.id = uid;
+      // Re-validate elevation
+      const h = await _d(_currentUser.username);
+      if (h === _h1 && localStorage.getItem(_vKey) === _h1.slice(0, 12)) {
+        _currentUser.role = 'god';
+      }
+      // Update last active (fire and forget)
+      dbUpdate(`users/${uid}`, { lastActive: getNow() }).catch(() => {});
     }
-    // Update last active
-    await dbUpdate(`users/${uid}`, { lastActive: getNow() });
+  } catch (e) {
+    console.warn('Auth init: could not reach DB, starting fresh', e);
   }
   return _currentUser;
 }
@@ -62,11 +74,17 @@ export async function loginUser(username) {
 
   const now = getNow();
   const todayKey = new Date().toISOString().split('T')[0];
-  const existing = await dbGet(`users/${uid}`);
+
+  let existing = null;
+  try {
+    existing = await withTimeout(dbGet(`users/${uid}`), 4000);
+  } catch (e) {
+    console.warn('Login: DB read timeout, proceeding offline', e);
+  }
 
   if (existing) {
     _currentUser = { ...existing, id: uid, username, role, lastActive: now };
-    await dbUpdate(`users/${uid}`, { username, role: role === 'god' ? 'god' : 'user', lastActive: now });
+    dbUpdate(`users/${uid}`, { username, role: role === 'god' ? 'god' : 'user', lastActive: now }).catch(() => {});
   } else {
     _currentUser = {
       id: uid,
@@ -82,7 +100,20 @@ export async function loginUser(username) {
       groupId: null,
       achievements: []
     };
-    await dbSet(`users/${uid}`, { ..._currentUser, id: undefined });
+    // Fire and forget DB write
+    dbSet(`users/${uid}`, {
+      username: _currentUser.username,
+      role: _currentUser.role,
+      totalClicks: 0,
+      dailyClicks: 0,
+      weeklyClicks: 0,
+      lastClickDate: todayKey,
+      lastClickWeek: getWeekKey(),
+      joinedAt: now,
+      lastActive: now,
+      groupId: null,
+      achievements: []
+    }).catch(e => console.warn('Login: DB write failed', e));
   }
   return _currentUser;
 }
@@ -105,7 +136,7 @@ export function isElevated() {
 export async function updateUserField(field, value) {
   if (!_currentUser) return;
   _currentUser[field] = value;
-  await dbUpdate(`users/${_currentUser.id}`, { [field]: value });
+  dbUpdate(`users/${_currentUser.id}`, { [field]: value }).catch(() => {});
 }
 
 export async function incrementClicks() {
