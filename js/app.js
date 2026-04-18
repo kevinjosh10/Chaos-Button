@@ -10,6 +10,7 @@ import { canClick, batchWrite, flushBatch, startCleanupCycle } from './performan
 
 // ─── DOM References ───
 const $ = id => document.getElementById(id);
+const BOOT_TIME = Date.now();
 
 // Screens
 const loginScreen = $('login-screen');
@@ -521,7 +522,15 @@ function startRealtimeListeners() {
   // Announcements
   listenAnnouncements((announcement) => {
     if (announcement && announcement.text) {
-      announcementText.textContent = announcement.text;
+      if (announcement.author === '👁️ GOD') {
+        announcementText.innerHTML = `<span style="font-weight:900; color: #fff; text-shadow: 0 0 10px #fff, 0 0 20px #00f0ff;">${announcement.author}:</span> <span style="font-style: italic; letter-spacing: 1px;">${announcement.text}</span>`;
+        announcementBanner.style.background = 'linear-gradient(45deg, rgba(255,0,110,0.8), rgba(0,240,255,0.8))';
+        announcementBanner.style.boxShadow = '0 0 20px rgba(0, 240, 255, 0.5)';
+      } else {
+        announcementText.textContent = `[${announcement.author}] ${announcement.text}`;
+        announcementBanner.style.background = 'rgba(0, 0, 0, 0.4)';
+        announcementBanner.style.boxShadow = 'none';
+      }
       announcementBanner.classList.remove('hidden');
     } else {
       announcementBanner.classList.add('hidden');
@@ -536,12 +545,20 @@ function startRealtimeListeners() {
 
   // Admin Commands
   listenAdminCommands((data) => {
-    if (!data) return;
+    if (!data || !data.timestamp || data.timestamp < BOOT_TIME) return;
     const user = getCurrentUser();
     
     // Commands targeted at specific users
     if (data.type === 'reload') {
       window.location.reload();
+      return;
+    }
+    
+    // Commands that bypass sender check
+    if (data.type === 'normalize') {
+      document.body.className = '';
+      const fx = document.getElementById('fx-container');
+      if (fx) fx.innerHTML = '';
       return;
     }
     

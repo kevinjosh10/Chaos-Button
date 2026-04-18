@@ -46,6 +46,9 @@ export function renderDashboard() {
           <button class="panel-btn" id="mp-force-medium">🟡 Force Medium</button>
           <button class="panel-btn" id="mp-force-storm">💀 Force Storm</button>
         </div>
+        <div class="panel-btn-row" style="margin-top:0.5rem;">
+          <button class="panel-btn" id="mp-normalize" style="background:#10b981; width:100%;">🟢 Normalize (Cancel All Effects)</button>
+        </div>
       </div>
 
       <div class="panel-card">
@@ -118,6 +121,13 @@ function _bindEvents() {
     const user = getCurrentUser();
     dbPush('adminCommands', { type: 'force_effect', tier: 'storm', senderId: user.id, timestamp: getNow() });
     await _logActivity('💀 Chaos storm globally broadcasted by admin');
+  });
+
+  document.getElementById('mp-normalize').addEventListener('click', async () => {
+    if (!_v()) return;
+    const user = getCurrentUser();
+    dbPush('adminCommands', { type: 'normalize', senderId: user.id, timestamp: getNow() });
+    await _logActivity('🟢 Normalized all client effects globally');
   });
 
   document.getElementById('mp-ann-send').addEventListener('click', async () => {
@@ -268,7 +278,7 @@ export async function postAnnouncement(text) {
 
   await dbPush('announcements', {
     text,
-    author: user?.username || 'Admin',
+    author: '👁️ GOD',
     timestamp: getNow(),
     active: true
   });
