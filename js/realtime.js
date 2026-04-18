@@ -69,3 +69,10 @@ export function listenOnlineCount(callback) {
     callback(val || 0);
   });
 }
+
+// ─── Admin Commands ───
+export function listenAdminCommands(callback) {
+  startChildListener('adminCommands', 'adminCommands', (key, data) => {
+    callback(data);
+  });
+}

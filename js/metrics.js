@@ -37,7 +37,7 @@ export function renderDashboard() {
       </div>
 
       <div class="panel-card">
-        <h4>Powers</h4>
+        <h4>Powers (Global Broadcast)</h4>
         <div class="panel-btn-row">
           <button class="panel-btn warning" id="mp-global-chaos">🌪️ Global Chaos</button>
           <button class="panel-btn danger" id="mp-force-rare">⚡ Force Rare</button>
@@ -45,6 +45,18 @@ export function renderDashboard() {
         <div class="panel-btn-row" style="margin-top:0.5rem;">
           <button class="panel-btn" id="mp-force-medium">🟡 Force Medium</button>
           <button class="panel-btn" id="mp-force-storm">💀 Force Storm</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h4>Granular Wipes</h4>
+        <div class="panel-btn-row" style="margin-bottom:0.5rem;">
+          <button class="panel-btn danger" id="mp-clear-lb">🏆 Clear Leaderboards</button>
+          <button class="panel-btn danger" id="mp-clear-log">📜 Clear Activity</button>
+        </div>
+        <div class="panel-btn-row" style="margin-bottom:0.5rem;">
+          <button class="panel-btn danger" id="mp-clear-users">👥 Delete Users</button>
+          <button class="panel-btn danger" id="mp-clear-clicks">🎯 Reset Clicks</button>
         </div>
         <div class="panel-btn-row" style="margin-top:1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
           <button class="panel-btn" id="mp-nuke-db" style="background: var(--color-error); width: 100%;">🚨 FACTORY RESET DATABASE</button>
@@ -82,34 +94,30 @@ function _bindEvents() {
 
   document.getElementById('mp-global-chaos').addEventListener('click', async () => {
     if (!_v()) return;
-    // Trigger multiple effects
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => forceEffect('normal'), i * 300);
-    }
-    forceEffect('medium');
-    await _logActivity('🌪️ Global Chaos triggered by admin');
+    const user = getCurrentUser();
+    dbPush('adminCommands', { type: 'force_effect', tier: 'global_chaos', senderId: user.id, timestamp: getNow() });
+    await _logActivity('🌪️ Global Chaos globally broadcasted by admin');
   });
 
   document.getElementById('mp-force-rare').addEventListener('click', async () => {
     if (!_v()) return;
-    forceEffect('rare');
-    await _logActivity('⚡ Rare event forced by admin');
+    const user = getCurrentUser();
+    dbPush('adminCommands', { type: 'force_effect', tier: 'rare', senderId: user.id, timestamp: getNow() });
+    await _logActivity('⚡ Rare event globally broadcasted by admin');
   });
 
   document.getElementById('mp-force-medium').addEventListener('click', async () => {
     if (!_v()) return;
-    forceEffect('medium');
-    await _logActivity('🟡 Medium event forced by admin');
+    const user = getCurrentUser();
+    dbPush('adminCommands', { type: 'force_effect', tier: 'medium', senderId: user.id, timestamp: getNow() });
+    await _logActivity('🟡 Medium event globally broadcasted by admin');
   });
 
   document.getElementById('mp-force-storm').addEventListener('click', async () => {
     if (!_v()) return;
-    // Trigger chaos storm
-    const effects = ['rare', 'medium', 'medium', 'normal', 'normal'];
-    effects.forEach((tier, i) => {
-      setTimeout(() => forceEffect(tier), i * 500);
-    });
-    await _logActivity('💀 Chaos storm unleashed by admin');
+    const user = getCurrentUser();
+    dbPush('adminCommands', { type: 'force_effect', tier: 'storm', senderId: user.id, timestamp: getNow() });
+    await _logActivity('💀 Chaos storm globally broadcasted by admin');
   });
 
   document.getElementById('mp-ann-send').addEventListener('click', async () => {
@@ -126,6 +134,49 @@ function _bindEvents() {
     await dbSet('announcements', null);
   });
 
+  async function broadcastReload() {
+    dbPush('adminCommands', { type: 'reload', timestamp: getNow() });
+  }
+
+  document.getElementById('mp-clear-lb').addEventListener('click', async () => {
+    if (!_v()) return;
+    if (confirm("Wipe all leaderboards?")) {
+      await dbSet('leaderboards', null);
+      broadcastReload();
+    }
+  });
+
+  document.getElementById('mp-clear-log').addEventListener('click', async () => {
+    if (!_v()) return;
+    if (confirm("Wipe activity feed?")) {
+      await dbSet('activityLogs', null);
+      broadcastReload();
+    }
+  });
+
+  document.getElementById('mp-clear-users').addEventListener('click', async () => {
+    if (!_v()) return;
+    if (confirm("Delete ALL users and force log out?")) {
+      await dbSet('users', null);
+      broadcastReload();
+    }
+  });
+
+  document.getElementById('mp-clear-clicks').addEventListener('click', async () => {
+    if (!_v()) return;
+    if (confirm("Reset everyone's clicks to 0 without deleting accounts?")) {
+      const users = await dbGet('users');
+      if (users) {
+        Object.keys(users).forEach(uid => {
+          dbUpdate(`users/${uid}`, { totalClicks: 0, dailyClicks: 0, weeklyClicks: 0 }).catch(() => {});
+        });
+      }
+      await dbSet('globalStats', null);
+      await dbSet('leaderboards', null);
+      broadcastReload();
+    }
+  });
+
   document.getElementById('mp-nuke-db').addEventListener('click', async () => {
     if (!_v()) return;
     const confirmChoice = window.confirm("WARNING: This will permanently wipe ALL users, clicks, leaderboards, groups, and chat logs. Are you completely sure?");
@@ -139,8 +190,7 @@ function _bindEvents() {
         await dbSet('groups', null);
         await dbSet('globalStats', null);
         await dbSet('announcements', null);
-        alert("Database wiped completely. Taking you back to login.");
-        window.location.reload();
+        broadcastReload(); // Broadcast reload instead of local reload to refresh all clients
       } catch (e) {
         alert("Error wiping DB: " + e.message);
         document.getElementById('mp-nuke-db').textContent = '🚨 FACTORY RESET DATABASE';

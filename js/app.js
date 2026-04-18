@@ -1,11 +1,11 @@
 // ─── Main App Controller ───
 import { dbPush, dbUpdate, dbGet, getNow, getTodayKey, getWeekKey } from './firebase.js';
 import { initAuth, loginUser, getCurrentUser, processInput, isElevated, incrementClicks, getUserId } from './auth.js';
-import { triggerChaos, getChaosLevel, startCooldown, isCooldownActive } from './chaos-engine.js';
+import { triggerChaos, getChaosLevel, startCooldown, isCooldownActive, forceEffect } from './chaos-engine.js';
 import { createGroup, joinGroup, sendMessage, listenMessages, stopMessageListener } from './social.js';
 import { updateLeaderboard, listenLeaderboard, stopLeaderboardListener, checkAchievements, getAllAchievements } from './gamification.js';
 import { injectNavButton, renderDashboard } from './metrics.js';
-import { listenAnnouncements, listenGlobalClicks, stopAllListeners } from './realtime.js';
+import { listenAnnouncements, listenGlobalClicks, stopAllListeners, listenAdminCommands } from './realtime.js';
 import { canClick, batchWrite, flushBatch, startCleanupCycle } from './performance.js';
 
 // ─── DOM References ───
@@ -242,6 +242,16 @@ async function handleChaosClick() {
   // Start cooldown for medium/rare
   if (result.tier !== 'normal') {
     startCooldown(result.tier, chaosBtn, cooldownBar, cooldownFill);
+  }
+
+  // Announce Rare effects automatically
+  if (result.tier === 'rare') {
+    dbPush('announcements', {
+      text: `🔥 ${user.displayName || user.username} just triggered a RARE chaos event!`,
+      author: 'System',
+      timestamp: getNow(),
+      active: true
+    }).catch(() => {});
   }
 
   // Update leaderboard (batched)
@@ -522,6 +532,33 @@ function startRealtimeListeners() {
   listenGlobalClicks((count) => {
     globalTotalClicks = count;
     globalClicksEl.textContent = formatNumber(count);
+  });
+
+  // Admin Commands
+  listenAdminCommands((data) => {
+    if (!data) return;
+    const user = getCurrentUser();
+    
+    // Commands targeted at specific users
+    if (data.type === 'reload') {
+      window.location.reload();
+      return;
+    }
+    
+    // Ignore effects triggered by ourselves
+    if (data.senderId === user?.id) return; 
+
+    if (data.type === 'force_effect' && data.tier) {
+      if (data.tier === 'storm') {
+        const effects = ['rare', 'medium', 'medium', 'normal', 'normal'];
+        effects.forEach((t, i) => setTimeout(() => forceEffect(t), i * 500));
+      } else if (data.tier === 'global_chaos') {
+        for (let i = 0; i < 5; i++) setTimeout(() => forceEffect('normal'), i * 300);
+        forceEffect('medium');
+      } else {
+        forceEffect(data.tier);
+      }
+    }
   });
 }
 

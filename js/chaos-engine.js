@@ -1,5 +1,5 @@
 // ─── Chaos Engine — Effect System ───
-// Probability: 70% Normal, 29.2% Medium, 0.8% Rare
+// Probability: 68% Normal, 30% Medium, 2.0% Rare
 // Combo: 10-15% chance of multi-effects
 
 const EMOJIS_RAIN = ['💥', '🔥', '⚡', '🌀', '💀', '👻', '🤯', '🎉', '✨', '🌈', '☄️', '🪐'];
@@ -81,7 +81,7 @@ export function triggerChaos() {
   const roll = Math.random() * 100;
   let tier, effects, chosen;
 
-  if (roll < 0.8 && canTrigger('rare')) {
+  if (roll < 2.0 && canTrigger('rare')) {
     tier = 'rare';
     chosen = pickRandom(RARE_EFFECTS);
     _lastRare = Date.now();
