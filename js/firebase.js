@@ -4,7 +4,7 @@ import {
   getDatabase, ref, set, get, push, update, remove,
   onValue, onChildAdded, onChildRemoved, off,
   query, orderByChild, limitToLast, limitToFirst,
-  serverTimestamp
+  serverTimestamp, onDisconnect
 } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -90,4 +90,4 @@ export function getWeekKey() {
   return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
-export { db, ref, onValue, onChildAdded, off, query, orderByChild, limitToLast, push, set, get, update };
+export { db, ref, onValue, onChildAdded, off, query, orderByChild, limitToLast, push, set, get, update, onDisconnect, serverTimestamp };

@@ -1,7 +1,7 @@
 // ─── Auth & Session Management ───
 // Credential validation uses SHA-256 digest comparison.
 // No plaintext secrets exist anywhere in this codebase.
-import { dbSet, dbGet, dbUpdate, getNow } from './firebase.js';
+import { dbSet, dbGet, dbUpdate, getNow, db, ref, onDisconnect, serverTimestamp } from './firebase.js';
 
 let _currentUser = null;
 
@@ -48,6 +48,7 @@ export async function initAuth() {
       }
       // Update last active (fire and forget)
       dbUpdate(`users/${uid}`, { lastActive: getNow() }).catch(() => {});
+      setupPresence(uid);
     }
   } catch (e) {
     console.warn('Auth init: could not reach DB, starting fresh', e);
@@ -116,7 +117,22 @@ export async function loginUser(username, displayName) {
       achievements: []
     }).catch(e => console.warn('Login: DB write failed', e));
   }
+  
+  setupPresence(uid);
   return _currentUser;
+}
+
+function setupPresence(uid) {
+  const userStatusRef = ref(db, `status/${uid}`);
+  onDisconnect(userStatusRef).set({
+    state: 'offline',
+    last_changed: serverTimestamp()
+  }).then(() => {
+    dbSet(`status/${uid}`, {
+      state: 'online',
+      last_changed: serverTimestamp()
+    });
+  });
 }
 
 // ─── Input validation (deprecated but kept for signature) ───

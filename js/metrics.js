@@ -46,6 +46,9 @@ export function renderDashboard() {
           <button class="panel-btn" id="mp-force-medium">🟡 Force Medium</button>
           <button class="panel-btn" id="mp-force-storm">💀 Force Storm</button>
         </div>
+        <div class="panel-btn-row" style="margin-top:1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+          <button class="panel-btn" id="mp-nuke-db" style="background: var(--color-error); width: 100%;">🚨 FACTORY RESET DATABASE</button>
+        </div>
       </div>
 
       <div class="panel-card">
@@ -122,6 +125,28 @@ function _bindEvents() {
     if (!_v()) return;
     await dbSet('announcements', null);
   });
+
+  document.getElementById('mp-nuke-db').addEventListener('click', async () => {
+    if (!_v()) return;
+    const confirmChoice = window.confirm("WARNING: This will permanently wipe ALL users, clicks, leaderboards, groups, and chat logs. Are you completely sure?");
+    if (confirmChoice) {
+      document.getElementById('mp-nuke-db').textContent = 'WIPING...';
+      try {
+        await dbSet('users', null);
+        await dbSet('leaderboards', null);
+        await dbSet('messages', null);
+        await dbSet('activityLogs', null);
+        await dbSet('groups', null);
+        await dbSet('globalStats', null);
+        await dbSet('announcements', null);
+        alert("Database wiped completely. Taking you back to login.");
+        window.location.reload();
+      } catch (e) {
+        alert("Error wiping DB: " + e.message);
+        document.getElementById('mp-nuke-db').textContent = '🚨 FACTORY RESET DATABASE';
+      }
+    }
+  });
 }
 
 async function _loadData() {
@@ -130,8 +155,17 @@ async function _loadData() {
   if (users) {
     const userCount = Object.keys(users).length;
     const totalClicks = Object.values(users).reduce((s, u) => s + (u.totalClicks || 0), 0);
-    const now = Date.now();
-    const activeCount = Object.values(users).filter(u => now - (u.lastActive || 0) < 300000).length;
+    
+    // Get real-time online status
+    const statusObj = await dbGet('status');
+    let activeCount = 0;
+    if (statusObj) {
+      activeCount = Object.values(statusObj).filter(s => s.state === 'online').length;
+    } else {
+      // Fallback
+      const now = Date.now();
+      activeCount = Object.values(users).filter(u => now - (u.lastActive || 0) < 300000).length;
+    }
 
     const usersEl = document.getElementById('mp-users');
     const clicksEl = document.getElementById('mp-clicks');
