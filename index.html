@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chaos Button — Unleash the Chaos</title>
+  <meta name="description" content="Real-time multiplayer chaos button. Click, compete, and experience unpredictable madness.">
+  <meta name="theme-color" content="#07070d">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen active">
+    <div class="login-bg-effects">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="login-container">
+      <div class="login-logo">
+        <span class="logo-chaos">CHAOS</span>
+        <span class="logo-button">BUTTON</span>
+      </div>
+      <p class="login-tagline">Unleash the unpredictable.</p>
+      <div class="login-form">
+        <input type="text" id="username-input" class="login-input" placeholder="Choose your name..." maxlength="20" autocomplete="off" spellcheck="false">
+        <button id="login-btn" class="login-btn">
+          <span>ENTER THE CHAOS</span>
+          <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <p class="login-footer">No account needed. Just vibes.</p>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="screen">
+    <!-- Announcement Banner -->
+    <div id="announcement-banner" class="announcement-banner hidden">
+      <span class="ann-icon">📢</span>
+      <span id="announcement-text"></span>
+      <button id="close-announcement" class="ann-close">✕</button>
+    </div>
+
+    <!-- Home Page -->
+    <div id="page-home" class="page active">
+      <div class="home-header">
+        <div class="stat-pill">
+          <span class="stat-icon">⚡</span>
+          <span id="total-clicks">0</span>
+          <label>Clicks</label>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-icon">🌍</span>
+          <span id="global-clicks">0</span>
+          <label>Global</label>
+        </div>
+      </div>
+      <div class="chaos-area">
+        <div class="chaos-button-wrapper" id="chaos-button-wrapper">
+          <div class="chaos-ring chaos-ring-1"></div>
+          <div class="chaos-ring chaos-ring-2"></div>
+          <div class="chaos-ring chaos-ring-3"></div>
+          <button id="chaos-btn" class="chaos-button">
+            <span class="chaos-emoji">💥</span>
+            <span class="chaos-label">CHAOS</span>
+          </button>
+        </div>
+        <div id="cooldown-bar" class="cooldown-bar">
+          <div id="cooldown-fill" class="cooldown-fill"></div>
+        </div>
+      </div>
+      <div id="chaos-indicator" class="chaos-indicator">
+        <div class="indicator-header">
+          <span>Chaos Level</span>
+          <span id="chaos-level-text" class="chaos-level-text">Calm</span>
+        </div>
+        <div class="chaos-bar"><div id="chaos-fill" class="chaos-fill"></div></div>
+      </div>
+      <div id="event-feed" class="event-feed"></div>
+    </div>
+
+    <!-- Leaderboard Page -->
+    <div id="page-leaderboard" class="page">
+      <h2 class="page-title">🏆 Leaderboard</h2>
+      <div class="tabs" id="lb-tabs">
+        <button class="tab active" data-tab="daily">Daily</button>
+        <button class="tab" data-tab="weekly">Weekly</button>
+        <button class="tab" data-tab="alltime">All-Time</button>
+      </div>
+      <div id="leaderboard-list" class="leaderboard-list"></div>
+    </div>
+
+    <!-- Chat Page -->
+    <div id="page-chat" class="page">
+      <div class="chat-header">
+        <h2 class="page-title">💬 Chat</h2>
+        <span id="group-id-display" class="group-badge">No Group</span>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-empty">Join or create a group to start chatting!</div>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="280" autocomplete="off">
+        <button id="send-btn" class="send-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Profile Page -->
+    <div id="page-profile" class="page">
+      <h2 class="page-title">👤 Profile</h2>
+      <div class="profile-card">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <h3 id="profile-name" class="profile-name">Username</h3>
+        <div class="profile-role-badge hidden" id="profile-role"></div>
+        <div class="profile-stats">
+          <div class="pstat"><span id="p-total" class="pstat-val">0</span><label>Total</label></div>
+          <div class="pstat"><span id="p-daily" class="pstat-val">0</span><label>Today</label></div>
+          <div class="pstat"><span id="p-rank" class="pstat-val">—</span><label>Rank</label></div>
+        </div>
+      </div>
+      <div class="profile-section">
+        <h4 class="section-title">Group</h4>
+        <div class="group-info">
+          <span id="p-group-id" class="group-id-text">No group</span>
+          <button id="copy-group-btn" class="small-btn">📋 Copy</button>
+        </div>
+        <div class="group-actions">
+          <input type="text" id="join-group-input" class="group-input" placeholder="Enter Group ID..." maxlength="20">
+          <button id="join-group-btn" class="action-btn">Join</button>
+          <button id="create-group-btn" class="action-btn primary">Create</button>
+        </div>
+      </div>
+      <div class="profile-section">
+        <h4 class="section-title">Achievements</h4>
+        <div id="achievements-grid" class="achievements-grid"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottom-nav" class="bottom-nav">
+      <button class="nav-btn active" data-page="home">
+        <span class="nav-icon">💥</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-btn" data-page="leaderboard">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Ranks</span>
+      </button>
+      <button class="nav-btn" data-page="chat">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">Chat</span>
+      </button>
+      <button class="nav-btn" data-page="profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Profile</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Effects Layer (for chaos visual effects) -->
+  <div id="fx-container" class="fx-container"></div>
+
+  <!-- Achievement Toast -->
+  <div id="achievement-toast" class="achievement-toast hidden">
+    <span class="ach-icon">🏅</span>
+    <div class="ach-info">
+      <strong id="ach-title"></strong>
+      <span id="ach-desc"></span>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
