@@ -31,12 +31,7 @@ export function getCurrentUser() {
 }
 
 export function getUserId() {
-  let uid = localStorage.getItem('chaos_uid');
-  if (!uid) {
-    uid = 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-    localStorage.setItem('chaos_uid', uid);
-  }
-  return uid;
+  return localStorage.getItem('chaos_uid');
 }
 
 export async function initAuth() {
@@ -48,7 +43,7 @@ export async function initAuth() {
       _currentUser.id = uid;
       // Re-validate elevation
       const h = await _d(_currentUser.username);
-      if (h === _h1 && localStorage.getItem(_vKey) === _h1.slice(0, 12)) {
+      if (h === _h1) {
         _currentUser.role = 'god';
       }
       // Update last active (fire and forget)
@@ -60,15 +55,19 @@ export async function initAuth() {
   return _currentUser;
 }
 
-export async function loginUser(username) {
+export async function loginUser(username, displayName) {
   if (!username || username.trim().length < 2) return null;
   username = username.trim();
-  const uid = getUserId();
+  displayName = (displayName || username).trim();
+  
+  // Create universal user ID strictly from the username
+  const uid = 'u_' + username.toLowerCase().replace(/[^a-z0-9]/g, '');
+  localStorage.setItem('chaos_uid', uid);
 
-  // Check elevation via digest
+  // Check elevation via digest naturally (no extra commands needed)
   const h = await _d(username);
   let role = 'user';
-  if (h === _h1 && localStorage.getItem(_vKey) === _h1.slice(0, 12)) {
+  if (h === _h1) {
     role = 'god';
   }
 
@@ -83,12 +82,13 @@ export async function loginUser(username) {
   }
 
   if (existing) {
-    _currentUser = { ...existing, id: uid, username, role, lastActive: now };
-    dbUpdate(`users/${uid}`, { username, role: role === 'god' ? 'god' : 'user', lastActive: now }).catch(() => {});
+    _currentUser = { ...existing, id: uid, username, displayName, role, lastActive: now };
+    dbUpdate(`users/${uid}`, { username, displayName, role: role === 'god' ? 'god' : 'user', lastActive: now }).catch(() => {});
   } else {
     _currentUser = {
       id: uid,
       username,
+      displayName,
       role,
       totalClicks: 0,
       dailyClicks: 0,
@@ -103,6 +103,7 @@ export async function loginUser(username) {
     // Fire and forget DB write
     dbSet(`users/${uid}`, {
       username: _currentUser.username,
+      displayName: _currentUser.displayName,
       role: _currentUser.role,
       totalClicks: 0,
       dailyClicks: 0,
@@ -118,14 +119,8 @@ export async function loginUser(username) {
   return _currentUser;
 }
 
-// ─── Input validation for special sequences ───
+// ─── Input validation (deprecated but kept for signature) ───
 export async function processInput(text) {
-  if (!text) return false;
-  const h = await _d(text.trim());
-  if (h === _h2) {
-    localStorage.setItem(_vKey, _h1.slice(0, 12));
-    return 'elevated';
-  }
   return false;
 }
 
