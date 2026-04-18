@@ -17,6 +17,7 @@ const appScreen = $('app');
 
 // Login
 const usernameInput = $('username-input');
+const displayNameInput = $('displayname-input');
 const loginBtn = $('login-btn');
 
 // Home
@@ -91,20 +92,25 @@ function bindLoginEvents() {
   usernameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleLogin();
   });
+  displayNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') usernameInput.focus();
+  });
 }
 
 async function handleLogin() {
   const username = usernameInput.value.trim();
-  if (username.length < 2) {
-    usernameInput.style.borderColor = '#ef4444';
-    setTimeout(() => usernameInput.style.borderColor = '', 1000);
+  const displayName = displayNameInput.value.trim();
+  if (username.length < 2 || displayName.length < 2) {
+    if (username.length < 2) usernameInput.style.borderColor = '#ef4444';
+    if (displayName.length < 2) displayNameInput.style.borderColor = '#ef4444';
+    setTimeout(() => { usernameInput.style.borderColor = ''; displayNameInput.style.borderColor = ''; }, 1000);
     return;
   }
 
   loginBtn.innerHTML = '<span>Loading...</span>';
   loginBtn.disabled = true;
 
-  const user = await loginUser(username);
+  const user = await loginUser(username, displayName);
   if (user) {
     showApp(user);
   } else {
@@ -227,7 +233,7 @@ async function handleChaosClick() {
   // Log activity
   dbPush('activityLogs', {
     userId: user.id,
-    username: user.username,
+    username: user.displayName || user.username,
     event: result.effect.name,
     tier: result.tier,
     timestamp: getNow()
@@ -239,7 +245,7 @@ async function handleChaosClick() {
   }
 
   // Update leaderboard (batched)
-  updateLeaderboard(user.id, user.username, user.totalClicks).catch(() => {});
+  updateLeaderboard(user.id, user.displayName || user.username, user.totalClicks).catch(() => {});
 
   // Update global counter
   globalTotalClicks++;
@@ -304,14 +310,14 @@ function renderLeaderboard(entries) {
     const rank = i + 1;
     const topClass = rank <= 3 ? ` top-${rank}` : '';
     const medals = ['🥇', '🥈', '🥉'];
-    const initial = (entry.username || '?')[0].toUpperCase();
+    const initial = (entry.displayName || entry.username || '?')[0].toUpperCase();
     const isMe = entry.id === user?.id;
     return `
       <div class="lb-item${topClass}${isMe ? ' own' : ''}">
         <span class="lb-rank">${rank <= 3 ? medals[rank - 1] : '#' + rank}</span>
         <div class="lb-avatar">${initial}</div>
         <div class="lb-info">
-          <div class="lb-name">${escapeHtml(entry.username)}${isMe ? ' (You)' : ''}</div>
+          <div class="lb-name">${escapeHtml(entry.displayName || entry.username)}${isMe ? ' (You)' : ''}</div>
         </div>
         <span class="lb-clicks">${formatNumber(entry.clicks)}</span>
       </div>
@@ -351,7 +357,7 @@ function appendMessage(msg) {
   } else {
     const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     el.innerHTML = `
-      ${!isOwn ? `<div class="msg-author">${escapeHtml(msg.username)}</div>` : ''}
+      ${!isOwn ? `<div class="msg-author">${escapeHtml(msg.displayName || msg.username)}</div>` : ''}
       <div class="msg-text">${escapeHtml(msg.text)}</div>
       <div class="msg-time">${time}</div>
     `;
@@ -404,9 +410,9 @@ async function handleSendMessage() {
 
 function updateProfileUI(user) {
   if (!user) return;
-  const initial = (user.username || '?')[0].toUpperCase();
+  const initial = (user.displayName || user.username || '?')[0].toUpperCase();
   profileAvatar.textContent = initial;
-  profileName.textContent = user.username;
+  profileName.textContent = user.displayName || user.username;
 
   if (isElevated()) {
     profileRole.textContent = '👑 ADMIN';
