@@ -243,6 +243,31 @@
     </div>
   </div>
 
+  <!-- Custom Confirm Modal -->
+  <div id="custom-confirm-modal" class="modal hidden" style="position:fixed; z-index:20000; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center;">
+    <div class="glass-panel" style="text-align:center; padding: 2rem; border-color:var(--color-error); box-shadow: 0 0 50px rgba(239,68,68,0.3);">
+      <h2 id="cc-title" style="color:var(--color-error); margin-bottom:1rem;">WARNING</h2>
+      <p id="cc-desc" style="color:#fff; margin-bottom: 2rem;">Are you sure?</p>
+      <div style="display:flex; gap: 1rem; justify-content:center;">
+        <button id="cc-cancel" class="small-btn">Cancel</button>
+        <button id="cc-confirm" class="action-btn" style="background:var(--color-error);">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tactical Target Modal -->
+  <div id="target-modal" class="modal hidden" style="position:fixed; z-index:15000; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center;">
+     <div class="glass-panel" style="text-align:center; padding: 2rem; border-color:var(--color-primary); box-shadow: 0 0 50px rgba(0,240,255,0.2);">
+         <h2 style="color: var(--color-primary); margin-bottom:0.5rem;">Target Locked</h2>
+         <p>Operator: <strong id="target-modal-name" style="color:#fff; font-size:1.2rem;"></strong></p>
+         <div style="display:flex; gap: 10px; justify-content:center; margin-top: 2rem;">
+             <button class="action-btn" id="strike-medium" style="background:var(--color-warning); color:#000;">🟡 Medium</button>
+             <button class="action-btn" id="strike-rare" style="background:#ff006e; color:#fff;">⚡ Rare</button>
+         </div>
+         <button id="strike-cancel" class="small-btn" style="margin-top:20px; width:100%;">Abort</button>
+     </div>
+  </div>
+
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
